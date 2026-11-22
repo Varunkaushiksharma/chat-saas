@@ -2,9 +2,11 @@
 
 import { AnimatePresence, motion } from "motion/react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { cx, Logo } from "@/components/ui";
+import { createClient } from "@/lib/supabase/client";
+import { useAuthStatus } from "@/lib/useAuthStatus";
 
 const links = [
   { href: "/#features", label: "Features" },
@@ -15,8 +17,16 @@ const links = [
 
 export function SiteHeader() {
   const pathname = usePathname();
+  const router = useRouter();
+  const auth = useAuthStatus();
   const [scrolled, setScrolled] = useState(false);
   const [open, setOpen] = useState(false);
+
+  async function signOut() {
+    await createClient().auth.signOut();
+    setOpen(false);
+    router.refresh();
+  }
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 12);
@@ -45,15 +55,33 @@ export function SiteHeader() {
         </nav>
 
         <div className="flex items-center gap-2 text-sm">
-          <Link href="/login" className="hidden rounded-full px-4 py-2 font-bold transition-colors hover:bg-pop-green sm:block">
-            Log in
-          </Link>
-          <Link
-            href="/signup"
-            className="rounded-full border-2 border-ink bg-pop-yellow px-4 py-2 font-extrabold shadow-[3px_3px_0_#111] transition-all hover:-translate-x-px hover:-translate-y-px hover:shadow-[5px_5px_0_#111] active:translate-x-0.5 active:translate-y-0.5 active:shadow-none"
-          >
-            Get started
-          </Link>
+          {auth === "loading" && <span aria-hidden className="block h-10 w-[150px] sm:w-[210px]" />}
+          {auth === "out" && (
+            <>
+              <Link href="/login" className="hidden rounded-full px-4 py-2 font-bold transition-colors hover:bg-pop-green sm:block">
+                Log in
+              </Link>
+              <Link
+                href="/signup"
+                className="rounded-full border-2 border-ink bg-pop-yellow px-4 py-2 font-extrabold shadow-[3px_3px_0_#111] transition-all hover:-translate-x-px hover:-translate-y-px hover:shadow-[5px_5px_0_#111] active:translate-x-0.5 active:translate-y-0.5 active:shadow-none"
+              >
+                Get started
+              </Link>
+            </>
+          )}
+          {auth === "in" && (
+            <>
+              <button type="button" onClick={signOut} className="hidden rounded-full px-4 py-2 font-bold transition-colors hover:bg-pop-pink sm:block">
+                Log out
+              </button>
+              <Link
+                href="/dashboard"
+                className="rounded-full border-2 border-ink bg-pop-yellow px-4 py-2 font-extrabold shadow-[3px_3px_0_#111] transition-all hover:-translate-x-px hover:-translate-y-px hover:shadow-[5px_5px_0_#111] active:translate-x-0.5 active:translate-y-0.5 active:shadow-none"
+              >
+                Go to dashboard
+              </Link>
+            </>
+          )}
           <button
             type="button"
             aria-label={open ? "Close menu" : "Open menu"}
@@ -80,11 +108,20 @@ export function SiteHeader() {
             className="overflow-hidden border-t-2 border-ink bg-pop-yellow md:hidden"
           >
             <div className="flex flex-col gap-1 px-6 py-4">
-              {[...links, { href: "/login", label: "Log in" }].map((l) => (
+              {links.map((l) => (
                 <Link key={l.href} href={l.href} onClick={() => setOpen(false)} className="rounded-xl px-3 py-2.5 text-lg font-extrabold hover:bg-white">
                   {l.label}
                 </Link>
               ))}
+              {auth === "in" ? (
+                <button type="button" onClick={signOut} className="rounded-xl px-3 py-2.5 text-left text-lg font-extrabold hover:bg-white">
+                  Log out
+                </button>
+              ) : (
+                <Link href="/login" onClick={() => setOpen(false)} className="rounded-xl px-3 py-2.5 text-lg font-extrabold hover:bg-white">
+                  Log in
+                </Link>
+              )}
             </div>
           </motion.nav>
         )}

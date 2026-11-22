@@ -7,16 +7,29 @@ import { api } from "@/lib/client-api";
 import {
   COMMON_FAQS,
   fieldsToText,
+  mergeBlocks,
+  mergeFields,
   parseBlocks,
   POLICY_FIELDS,
   PROFILE_FIELDS,
   RESERVED,
-  textToFields,
   toBlock,
   type FieldDef,
 } from "@/lib/knowledge/specs";
 
-type Common = { botId: string; sourceId?: string; onSaved: () => void; onClose: () => void };
+type Common = { botId: string; sourceId?: string; seed?: string; onSaved: () => void; onClose: () => void };
+
+/** Shown when a form was pre-filled by the AI from the owner's website. */
+function AiBanner() {
+  return (
+    <div role="note" className="flex gap-3 rounded-xl border border-[#f0d98a] bg-[#fff8dc] px-4 py-3 text-sm text-[#6b4a00]">
+      <Ico d={dashIcons.bolt} className="mt-0.5 size-4 shrink-0" />
+      <p>
+        <strong className="font-semibold">Filled in by AI from your website.</strong> Check every detail before you save, because it can misread things. Anything you had already written was kept.
+      </p>
+    </div>
+  );
+}
 
 async function saveEntry(botId: string, sourceId: string | undefined, title: string, text: string, mode: "auto" | "paragraphs") {
   const body = JSON.stringify({ title, text, mode });
@@ -58,7 +71,7 @@ function Footer({ saving, error, onClose, label = "Save" }: { saving: boolean; e
 
 /* ---------------------- profile + policies: labelled fields ---------------------- */
 
-function FieldsForm({ fields, title, initial, example, ...c }: Common & { fields: FieldDef[]; title: string; initial: Record<string, string>; example: boolean }) {
+function FieldsForm({ fields, title, initial, example, aiFilled, ...c }: Common & { fields: FieldDef[]; title: string; initial: Record<string, string>; example: boolean; aiFilled?: boolean }) {
   const [values, setValues] = useState(initial);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
@@ -81,6 +94,7 @@ function FieldsForm({ fields, title, initial, example, ...c }: Common & { fields
 
   return (
     <form onSubmit={submit} className="space-y-5 p-6">
+      {aiFilled && <AiBanner />}
       {example && (
         <button
           type="button"
@@ -107,13 +121,13 @@ function FieldsForm({ fields, title, initial, example, ...c }: Common & { fields
 export function ProfileEditor(c: Common) {
   const text = useExisting(c.botId, c.sourceId);
   if (text === null) return <Loading />;
-  return <FieldsForm {...c} fields={PROFILE_FIELDS} title={RESERVED.profile} initial={textToFields(PROFILE_FIELDS, text)} example />;
+  return <FieldsForm {...c} fields={PROFILE_FIELDS} title={RESERVED.profile} initial={mergeFields(PROFILE_FIELDS, text, c.seed ?? "")} example aiFilled={!!c.seed} />;
 }
 
 export function PoliciesEditor(c: Common) {
   const text = useExisting(c.botId, c.sourceId);
   if (text === null) return <Loading />;
-  return <FieldsForm {...c} fields={POLICY_FIELDS} title={RESERVED.policies} initial={textToFields(POLICY_FIELDS, text)} example />;
+  return <FieldsForm {...c} fields={POLICY_FIELDS} title={RESERVED.policies} initial={mergeFields(POLICY_FIELDS, text, c.seed ?? "")} example aiFilled={!!c.seed} />;
 }
 
 /* --------------------------------- products --------------------------------- */
@@ -126,7 +140,7 @@ const sampleProducts: Product[] = [
   { name: "Custom printed diary", price: "From Rs 350", availability: "Made to order, 5 days", details: "Add your name or logo on the cover. 50 percent advance needed." },
 ];
 
-function ProductsForm({ initial, ...c }: Common & { initial: Product[] }) {
+function ProductsForm({ initial, aiFilled, ...c }: Common & { initial: Product[]; aiFilled?: boolean }) {
   const [rows, setRows] = useState<Product[]>(initial.length ? initial : [emptyProduct(), emptyProduct()]);
   const [bulk, setBulk] = useState(false);
   const [bulkText, setBulkText] = useState("");
@@ -169,6 +183,7 @@ function ProductsForm({ initial, ...c }: Common & { initial: Product[] }) {
 
   return (
     <form onSubmit={submit} className="space-y-5 p-6">
+      {aiFilled && <AiBanner />}
       <div className="flex flex-wrap gap-2">
         <button type="button" onClick={() => setRows(sampleProducts)} className="inline-flex items-center gap-2 rounded-full border border-transparent bg-brand-soft px-3.5 py-1.5 text-xs font-semibold text-brand hover:bg-[#d6e0ff]">
           <Ico d={dashIcons.bolt} className="size-3.5" /> Fill with an example
@@ -220,8 +235,8 @@ function ProductsForm({ initial, ...c }: Common & { initial: Product[] }) {
 export function ProductsEditor(c: Common) {
   const text = useExisting(c.botId, c.sourceId);
   if (text === null) return <Loading />;
-  const initial = parseBlocks(text).map((b) => ({ name: b.Product ?? "", price: b.Price ?? "", availability: b.Availability ?? "", details: b.Details ?? "" }));
-  return <ProductsForm {...c} initial={initial} />;
+  const initial = mergeBlocks(text, c.seed ?? "", "Product").map((b) => ({ name: b.Product ?? "", price: b.Price ?? "", availability: b.Availability ?? "", details: b.Details ?? "" }));
+  return <ProductsForm {...c} initial={initial} aiFilled={!!c.seed} />;
 }
 
 /* ----------------------------------- FAQs ----------------------------------- */
@@ -233,7 +248,7 @@ const sampleFaqs: Qa[] = [
   { q: "Do you deliver on Sundays?", a: "We deliver Monday to Saturday. Orders placed on Sunday ship on Monday." },
 ];
 
-function FaqForm({ initial, prefill, ...c }: Common & { initial: Qa[]; prefill?: string }) {
+function FaqForm({ initial, prefill, aiFilled, ...c }: Common & { initial: Qa[]; prefill?: string; aiFilled?: boolean }) {
   const start = [...initial];
   if (prefill) start.push({ q: prefill, a: "" });
   const [rows, setRows] = useState<Qa[]>(start.length ? start : [{ q: "", a: "" }, { q: "", a: "" }]);
@@ -261,6 +276,7 @@ function FaqForm({ initial, prefill, ...c }: Common & { initial: Qa[]; prefill?:
 
   return (
     <form onSubmit={submit} className="space-y-5 p-6">
+      {aiFilled && <AiBanner />}
       <div>
         <p className="text-xs font-semibold uppercase tracking-widest text-muted">Quick add: questions customers often ask</p>
         <div className="mt-2 flex flex-wrap gap-2">
@@ -313,8 +329,8 @@ function FaqForm({ initial, prefill, ...c }: Common & { initial: Qa[]; prefill?:
 export function FaqEditor(c: Common & { prefill?: string }) {
   const text = useExisting(c.botId, c.sourceId);
   if (text === null) return <Loading />;
-  const initial = parseBlocks(text).map((b) => ({ q: b.Question ?? "", a: b.Answer ?? "" }));
-  return <FaqForm {...c} initial={initial} prefill={c.prefill} />;
+  const initial = mergeBlocks(text, c.seed ?? "", "Question").map((b) => ({ q: b.Question ?? "", a: b.Answer ?? "" }));
+  return <FaqForm {...c} initial={initial} prefill={c.prefill} aiFilled={!!c.seed} />;
 }
 
 /* ----------------------------- free-form documents ----------------------------- */

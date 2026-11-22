@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useParams } from "next/navigation";
+import { useParams, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { cx, ErrorNote } from "@/components/ui";
 import { api } from "@/lib/client-api";
@@ -21,6 +21,8 @@ type TabId = (typeof tabs)[number]["id"];
 
 export function BotView() {
   const { id } = useParams<{ id: string }>();
+  // set by "Create bot" when the owner typed their website: open the website import straight away
+  const startUrl = useSearchParams().get("site") ?? undefined;
   const [bot, setBot] = useState<Bot | null>(null);
   const [error, setError] = useState("");
   const [tab, setTab] = useState<TabId>("knowledge");
@@ -38,7 +40,7 @@ export function BotView() {
       </Link>
       <h1 className="mt-2 font-display text-3xl font-extrabold tracking-tight md:text-4xl">{bot?.name ?? "…"}</h1>
 
-      <div className="mt-6 flex gap-1 overflow-x-auto border-b border-line" role="tablist">
+      <div className="mt-6 flex gap-1 overflow-x-auto overflow-y-hidden border-b border-line" role="tablist">
         {tabs.map((t) => (
           <button
             key={t.id}
@@ -57,7 +59,7 @@ export function BotView() {
 
       <div className="mt-6">
         <ErrorNote>{error}</ErrorNote>
-        {tab === "knowledge" && <KnowledgeTab botId={id} />}
+        {tab === "knowledge" && <KnowledgeTab botId={id} startUrl={startUrl} />}
         {bot && tab === "rules" && <RulesTab bot={bot} onSaved={setBot} />}
         {tab === "test" && <TestTab botId={id} />}
         {bot && tab === "install" && <InstallTab bot={bot} />}

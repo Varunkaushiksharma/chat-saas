@@ -6,9 +6,9 @@ import { requireUser } from "@/lib/auth";
 type Ctx = { params: Promise<{ id: string }> };
 
 async function loadConversation(supabase: Awaited<ReturnType<typeof requireUser>>["supabase"], id: string) {
-  const { data } = await supabase.from("conversations").select("id,tenant_id,status").eq("id", id).maybeSingle();
+  const { data } = await supabase.from("conversations").select("id,tenant_id,bot_id,status").eq("id", id).maybeSingle();
   if (!data) throw new HttpError("Conversation not found", 404);
-  return data as { id: string; tenant_id: string; status: "bot" | "human" | "closed" };
+  return data as { id: string; tenant_id: string; bot_id: string; status: "bot" | "human" | "closed" };
 }
 
 export async function GET(_req: Request, ctx: Ctx) {
@@ -23,7 +23,7 @@ export async function GET(_req: Request, ctx: Ctx) {
       .order("created_at", { ascending: true })
       .limit(500);
     if (error) throw new Error(error.message);
-    return NextResponse.json({ status: conv.status, messages: data });
+    return NextResponse.json({ status: conv.status, botId: conv.bot_id, messages: data });
   });
 }
 

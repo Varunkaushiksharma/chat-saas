@@ -7,6 +7,7 @@ import { HeroChat } from "@/components/HeroChat";
 import { Burst, Icon, icons, PopLink, Squiggle } from "@/components/landing-bits";
 import { EASE, WordReveal } from "@/components/motion";
 import { BRAND } from "@/lib/brand";
+import { useAuthStatus } from "@/lib/useAuthStatus";
 
 /** A sticker that floats at a given depth (translateZ) and bobs up and down. */
 function Floating({ z, className, delay = 0, children }: { z: number; className: string; delay?: number; children: React.ReactNode }) {
@@ -20,6 +21,7 @@ function Floating({ z, className, delay = 0, children }: { z: number; className:
 }
 
 export function Hero() {
+  const auth = useAuthStatus();
   const ref = useRef<HTMLElement>(null);
   const sceneRef = useRef<HTMLDivElement>(null);
 
@@ -100,10 +102,10 @@ export function Hero() {
           >
             <PopLink href="/signup" className="bg-pop-yellow text-ink">Build your assistant</PopLink>
             <Link
-              href="/login"
+              href={auth === "in" ? "/dashboard" : "/login"}
               className="rounded-full border-2 border-ink bg-white px-7 py-3.5 font-extrabold shadow-[4px_4px_0_#111] transition-all hover:-translate-x-0.5 hover:-translate-y-0.5 hover:bg-pop-green hover:shadow-[7px_7px_0_#111] active:translate-x-1 active:translate-y-1 active:shadow-none"
             >
-              Log in
+              {auth === "in" ? "Go to dashboard" : "Log in"}
             </Link>
           </motion.div>
           <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 1.1, duration: 0.8 }} className="mt-6 text-sm font-semibold text-muted">

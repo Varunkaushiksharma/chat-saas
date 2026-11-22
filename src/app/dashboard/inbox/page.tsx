@@ -1,7 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Badge, Button, Card, cx, Empty, ErrorNote, Input } from "@/components/ui";
+import { dashIcons, Ico } from "@/components/dash";
+import { Badge, Button, Card, cx, Empty, ErrorNote, Field, Input, Textarea } from "@/components/ui";
 import { api } from "@/lib/client-api";
 import type { InboxItem } from "../../api/inbox/route";
 
@@ -10,6 +11,14 @@ type Status = InboxItem["status"];
 
 const statusTone = { bot: "good", human: "warn", closed: "neutral" } as const;
 const statusLabel = { bot: "Bot handling", human: "Needs a human", closed: "Resolved" } as const;
+
+// The customer message an owner reply was answering: the latest real question before it.
+function guessQuestion(msgs: Message[], replyId: string) {
+  const idx = msgs.findIndex((m) => m.id === replyId);
+  const before = msgs.slice(0, idx).filter((m) => m.role === "customer");
+  const good = [...before].reverse().find((m) => m.content.trim().length >= 8);
+  return (good ?? before[before.length - 1])?.content.trim() ?? "";
+}
 
 function ago(iso: string) {
   const s = Math.max(1, Math.round((Date.now() - new Date(iso).getTime()) / 1000));
@@ -92,11 +101,17 @@ function Thread({ id, onBack, onChanged }: { id: string; onBack: () => void; onC
   const [error, setError] = useState("");
   const end = useRef<HTMLDivElement>(null);
 
+  const [botId, setBotId] = useState("");
+  const [teaching, setTeaching] = useState<{ id: string; question: string; answer: string } | null>(null);
+  const [taughtIds, setTaughtIds] = useState<string[]>([]);
+  const [teachSaving, setTeachSaving] = useState(false);
+
   const load = useCallback(
     () =>
-      api<{ status: Status; messages: Message[] }>(`/api/inbox/${id}`)
+      api<{ status: Status; botId: string; messages: Message[] }>(`/api/inbox/${id}`)
         .then((r) => {
           setStatus(r.status);
+          setBotId(r.botId);
           setMessages(r.messages);
         })
         .catch((e) => setError(e.message)),
@@ -127,6 +142,22 @@ function Thread({ id, onBack, onChanged }: { id: string; onBack: () => void; onC
       setError((err as Error).message);
     } finally {
       setSending(false);
+    }
+  }
+
+  async function teach(e: React.FormEvent) {
+    e.preventDefault();
+    if (!teaching || !botId) return;
+    setTeachSaving(true);
+    setError("");
+    try {
+      await api(`/api/bots/${botId}/faqs`, { method: "POST", body: JSON.stringify({ question: teaching.question, answer: teaching.answer }) });
+      setTaughtIds((ids) => [...ids, teaching.id]);
+      setTeaching(null);
+    } catch (err) {
+      setError((err as Error).message);
+    } finally {
+      setTeachSaving(false);
     }
   }
 
@@ -168,10 +199,49 @@ function Thread({ id, onBack, onChanged }: { id: string; onBack: () => void; onC
             >
               {m.content}
             </div>
+            {m.role === "agent" && botId && (
+              <div className="mt-1">
+                {taughtIds.includes(m.id) ? (
+                  <span className="text-xs font-semibold text-[#067a4b]">Saved to your FAQs ✓</span>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => setTeaching({ id: m.id, question: guessQuestion(messages, m.id), answer: m.content })}
+                    className="inline-flex items-center gap-1 text-xs font-semibold text-brand hover:underline"
+                  >
+                    <Ico d={dashIcons.bolt} className="size-3" /> Teach the bot this answer
+                  </button>
+                )}
+              </div>
+            )}
           </div>
         ))}
         <div ref={end} />
       </div>
+
+      {teaching && (
+        <form onSubmit={teach} className="space-y-3 border-t border-line bg-brand-soft/50 px-4 py-3">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <p className="text-sm font-semibold">Teach the bot this answer</p>
+              <p className="text-xs text-muted">Next time a customer asks this, the bot can answer on its own. It is saved to your FAQs.</p>
+            </div>
+            <button type="button" aria-label="Close" onClick={() => setTeaching(null)} className="grid size-7 shrink-0 place-items-center rounded-lg text-muted hover:bg-white hover:text-ink">
+              <Ico d={dashIcons.x} className="size-4" />
+            </button>
+          </div>
+          <Field label="When a customer asks">
+            <Input value={teaching.question} onChange={(e) => setTeaching({ ...teaching, question: e.target.value })} maxLength={300} required />
+          </Field>
+          <Field label="The bot answers">
+            <Textarea rows={3} value={teaching.answer} onChange={(e) => setTeaching({ ...teaching, answer: e.target.value })} maxLength={1500} required />
+          </Field>
+          <div className="flex gap-2">
+            <Button type="submit" size="sm" disabled={teachSaving}>{teachSaving ? "Saving…" : "Save to FAQs"}</Button>
+            <Button type="button" size="sm" variant="secondary" onClick={() => setTeaching(null)}>Cancel</Button>
+          </div>
+        </form>
+      )}
 
       {error && <div className="px-4 pb-2"><ErrorNote>{error}</ErrorNote></div>}
       <form onSubmit={send} className="flex gap-2 border-t border-line p-3">

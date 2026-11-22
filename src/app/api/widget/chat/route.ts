@@ -58,7 +58,9 @@ export async function POST(req: Request) {
       try {
         host = origin ? new URL(origin).hostname : "";
       } catch {}
-      if (!bot.allowed_domains.includes(host)) return fail("This website is not allowed", 403);
+      // "www.myshop.com" and "myshop.com" count as the same site
+      const bare = (h: string) => h.toLowerCase().replace(/^www\./, "");
+      if (!bot.allowed_domains.some((d: string) => bare(d) === bare(host))) return fail("This website is not allowed", 403);
     }
 
     const r = await runTurn(db, bot, { message, conversationId, channel: "web", customerRef: ip });

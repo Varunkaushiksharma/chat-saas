@@ -22,6 +22,21 @@ export function createGeminiProvider(): LLMProvider {
       return res.text ?? "";
     },
 
+    async json({ system, prompt, maxOutputTokens = 4000, timeoutMs = 60_000 }) {
+      const res = await ai.models.generateContent({
+        model: chatModel,
+        contents: [{ role: "user", parts: [{ text: prompt }] }],
+        config: {
+          systemInstruction: system,
+          maxOutputTokens,
+          temperature: 0.1,
+          responseMimeType: "application/json",
+          httpOptions: { timeout: timeoutMs },
+        },
+      });
+      return res.text ?? "";
+    },
+
     async embed(texts, task) {
       const res = await ai.models.embedContent({
         model: embedModel,

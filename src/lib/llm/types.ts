@@ -11,6 +11,9 @@ export interface LLMProvider {
     temperature?: number;
   }): Promise<string>;
 
+  /** Asks for a JSON answer and returns the raw JSON text (parse and validate it yourself). */
+  json(opts: { system: string; prompt: string; maxOutputTokens?: number; timeoutMs?: number }): Promise<string>;
+
   /** Embedding vectors with fixed dimension (768) to match the DB schema. */
   embed(texts: string[], task: "document" | "query"): Promise<number[][]>;
 }

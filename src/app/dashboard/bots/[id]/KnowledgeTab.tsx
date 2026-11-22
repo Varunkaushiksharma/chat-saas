@@ -1,12 +1,13 @@
 "use client";
 
 import { motion } from "motion/react";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Bar, Drawer, Ico, Ring, dashIcons } from "@/components/dash";
 import { Badge, Button, Card, cx, ErrorNote } from "@/components/ui";
 import { api } from "@/lib/client-api";
 import { RESERVED, scoreKnowledge, SECTION_WEIGHTS, strengthLabel, type SectionKey } from "@/lib/knowledge/specs";
 import { DocEditor, FaqEditor, PoliciesEditor, ProductsEditor, ProfileEditor } from "./KnowledgeEditors";
+import { initialImport, WebsiteImport, type ImportState } from "./WebsiteImport";
 
 type Source = { id: string; title: string; status: "pending" | "ready" | "failed" };
 type Gap = { question: string; count: number };
@@ -45,13 +46,31 @@ const sections: { key: SectionKey; icon: string; color: string; why: string; cov
 // readable names inside sentences ("Edit FAQs", not "Edit faqs")
 const LOWER: Record<SectionKey, string> = { profile: "business profile", products: "products and services", policies: "policies", faqs: "FAQs" };
 
-type Editing = { kind: SectionKey | "doc"; sourceId?: string; prefill?: string } | null;
+type Editing = { kind: SectionKey | "doc" | "import"; sourceId?: string; prefill?: string; seed?: string; fromImport?: boolean } | null;
 
-export function KnowledgeTab({ botId }: { botId: string }) {
+export function KnowledgeTab({ botId, startUrl }: { botId: string; startUrl?: string }) {
   const [sources, setSources] = useState<Source[] | null>(null);
   const [gaps, setGaps] = useState<Gap[]>([]);
   const [editing, setEditing] = useState<Editing>(null);
   const [error, setError] = useState("");
+  // the website import keeps its progress while you review each AI-filled form, then come back to it
+  const [imp, setImp] = useState<ImportState>(initialImport);
+  const updateImp = (patch: Partial<ImportState>) => setImp((cur) => ({ ...cur, ...patch }));
+
+  // Arrived from "Create bot" with a website address: open the import with it already typed in
+  // (the owner still has to confirm it's their site before anything is read).
+  const startedRef = useRef(false);
+  useEffect(() => {
+    if (!startUrl) return;
+    const t = setTimeout(() => {
+      if (startedRef.current) return;
+      startedRef.current = true;
+      setImp((cur) => ({ ...cur, url: startUrl }));
+      setEditing({ kind: "import" });
+      window.history.replaceState(null, "", window.location.pathname); // so a refresh doesn't reopen it
+    }, 0);
+    return () => clearTimeout(t);
+  }, [startUrl]);
 
   const load = useCallback(
     () =>
@@ -78,9 +97,17 @@ export function KnowledgeTab({ botId }: { botId: string }) {
   const score = scoreKnowledge(good.map((s) => s.title));
   const next = sections.find((s) => !byTitle(RESERVED[s.key]));
 
-  const close = () => setEditing(null);
+  // an editor opened from the website import returns to the import screen instead of closing everything
+  const close = () => setEditing((cur) => (cur?.fromImport ? { kind: "import" } : null));
+  const closeAll = () => setEditing(null);
   const saved = () => {
-    setEditing(null);
+    if (editing?.fromImport) {
+      const kind = editing.kind;
+      setImp((cur) => ({ ...cur, saved: cur.saved.includes(kind) ? cur.saved : [...cur.saved, kind] }));
+      setEditing({ kind: "import" });
+    } else {
+      setEditing(null);
+    }
     load();
   };
 
@@ -96,7 +123,9 @@ export function KnowledgeTab({ botId }: { botId: string }) {
 
   const drawerTitle = !editing
     ? ""
-    : editing.kind === "doc"
+    : editing.kind === "import"
+      ? "Import from your website"
+      : editing.kind === "doc"
       ? "Add a document"
       : editing.sourceId
         ? `Edit ${LOWER[editing.kind]}`
@@ -107,6 +136,7 @@ export function KnowledgeTab({ botId }: { botId: string }) {
     policies: "Write your real rules. The bot will repeat them exactly, so include numbers and conditions.",
     faqs: "Answer in your own words. Use the quick-add chips to start from common questions.",
     doc: "Anything else customers might ask about: brochures, price lists, guides, terms.",
+    import: "Paste your link. We read the public pages and fill things in for you to check.",
   };
 
   return (
@@ -136,6 +166,20 @@ export function KnowledgeTab({ botId }: { botId: string }) {
           )}
         </div>
       </Card>
+
+      {/* import from website */}
+      <div className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-line bg-brand-soft p-5 md:p-6">
+        <div className="flex min-w-0 items-center gap-4">
+          <span className="grid size-12 shrink-0 place-items-center rounded-xl bg-brand text-white"><Ico d={dashIcons.globe} className="size-6" /></span>
+          <div className="min-w-0">
+            <h3 className="font-display text-lg font-extrabold tracking-tight">Already have a website? Skip the typing.</h3>
+            <p className="mt-0.5 text-sm text-ink/75">Paste your link. We read your pages and fill in your business profile, products, policies and FAQs for you to check.</p>
+          </div>
+        </div>
+        <Button onClick={() => setEditing({ kind: "import" })}>
+          <Ico d={dashIcons.globe} className="size-4" /> Import from website
+        </Button>
+      </div>
 
       {/* guided sections */}
       <div>
@@ -240,13 +284,23 @@ export function KnowledgeTab({ botId }: { botId: string }) {
         )}
       </div>
 
-      <Drawer open={!!editing} onClose={close} title={drawerTitle} subtitle={editing ? drawerHint[editing.kind] : undefined}>
+      <Drawer open={!!editing} onClose={closeAll} title={drawerTitle} subtitle={editing ? drawerHint[editing.kind] : undefined}>
         {editing && (
           <>
-            {editing.kind === "profile" && <ProfileEditor key="p" botId={botId} sourceId={editing.sourceId} onSaved={saved} onClose={close} />}
-            {editing.kind === "products" && <ProductsEditor key="pr" botId={botId} sourceId={editing.sourceId} onSaved={saved} onClose={close} />}
-            {editing.kind === "policies" && <PoliciesEditor key="po" botId={botId} sourceId={editing.sourceId} onSaved={saved} onClose={close} />}
-            {editing.kind === "faqs" && <FaqEditor key="f" botId={botId} sourceId={editing.sourceId} prefill={editing.prefill} onSaved={saved} onClose={close} />}
+            {editing.kind === "import" && (
+              <WebsiteImport
+                botId={botId}
+                state={imp}
+                update={updateImp}
+                onPagesAdded={load}
+                onDone={closeAll}
+                onReview={(kind, seed) => setEditing({ kind, sourceId: byTitle(RESERVED[kind])?.id, seed, fromImport: true })}
+              />
+            )}
+            {editing.kind === "profile" && <ProfileEditor key={`p-${!!editing.seed}`} botId={botId} sourceId={editing.sourceId} seed={editing.seed} onSaved={saved} onClose={close} />}
+            {editing.kind === "products" && <ProductsEditor key={`pr-${!!editing.seed}`} botId={botId} sourceId={editing.sourceId} seed={editing.seed} onSaved={saved} onClose={close} />}
+            {editing.kind === "policies" && <PoliciesEditor key={`po-${!!editing.seed}`} botId={botId} sourceId={editing.sourceId} seed={editing.seed} onSaved={saved} onClose={close} />}
+            {editing.kind === "faqs" && <FaqEditor key={`f-${!!editing.seed}`} botId={botId} sourceId={editing.sourceId} prefill={editing.prefill} seed={editing.seed} onSaved={saved} onClose={close} />}
             {editing.kind === "doc" && <DocEditor key="d" botId={botId} onSaved={saved} onClose={close} />}
           </>
         )}

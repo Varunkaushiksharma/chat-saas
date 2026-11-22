@@ -137,7 +137,7 @@ export function TopNav() {
   const { waiting } = useNavData();
   const signOut = useSignOut();
   return (
-    <nav className="flex gap-1.5 overflow-x-auto px-3 pb-3">
+    <nav className="flex gap-1.5 overflow-x-auto overflow-y-hidden px-3 pb-3">
       {items.map((i) => {
         const active = i.match(pathname);
         return (

@@ -15,6 +15,7 @@ export default function BotsPage() {
   const [creating, setCreating] = useState(false);
   const [name, setName] = useState("");
   const [about, setAbout] = useState("");
+  const [site, setSite] = useState("");
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
@@ -32,7 +33,7 @@ export default function BotsPage() {
         method: "POST",
         body: JSON.stringify({ name, system_instructions: about }),
       });
-      router.push(`/dashboard/bots/${bot.id}`);
+      router.push(`/dashboard/bots/${bot.id}${site.trim() ? `?site=${encodeURIComponent(site.trim())}` : ""}`);
     } catch (err) {
       setError((err as Error).message);
       setBusy(false);
@@ -59,6 +60,9 @@ export default function BotsPage() {
             <form onSubmit={create} className="mt-5 space-y-4">
               <Field label="Business or bot name">
                 <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Varun Arts" required maxLength={80} />
+              </Field>
+              <Field label="Your website (optional)" hint="Paste your website address and we'll read it to fill in your bot for you. You check everything before it's saved.">
+                <Input value={site} onChange={(e) => setSite(e.target.value)} placeholder="www.yourshop.com" inputMode="url" autoComplete="url" maxLength={300} />
               </Field>
               <Field label="What does your business do?" hint="Optional. One or two sentences help the bot sound right.">
                 <Textarea rows={3} value={about} onChange={(e) => setAbout(e.target.value)} placeholder="We sell books and notebooks in Delhi. Be friendly and brief." maxLength={2000} />

@@ -155,7 +155,7 @@ export function RulesTab({ bot, onSaved }: { bot: Bot; onSaved: (b: Bot) => void
           <Field label={`How careful should it be? (${threshold.toFixed(2)})`} hint="Lower: answers more questions, with more risk of a loose answer. Higher: hands more chats to you.">
             <input type="range" min={0.3} max={0.8} step={0.05} value={threshold} onChange={(e) => setThreshold(Number(e.target.value))} className="w-full accent-brand" />
           </Field>
-          <Field label="Websites allowed to use this bot" hint="One per line, e.g. myshop.com. Leave empty to allow any site (fine for testing, set it before launch).">
+          <Field label="Which website can show your chat bubble?" hint="Only the websites listed here can use this bot, so nobody else can copy your code and use up your messages. Add your own site, one per line, like myshop.com. To test on your own computer, add localhost. Leave it empty while testing, then fill it in before you launch.">
             <Textarea rows={3} value={domains} onChange={(e) => setDomains(e.target.value)} placeholder={"myshop.com\nwww.myshop.com"} />
           </Field>
           <ErrorNote>{error}</ErrorNote>

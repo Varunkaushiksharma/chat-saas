@@ -131,3 +131,26 @@ export function textToFields(fields: FieldDef[], text: string, suffix = "") {
   for (const f of fields) out[f.key] = flat[f.label + suffix] ?? "";
   return out;
 }
+
+/** Fill only the EMPTY fields from the AI's suggestion; never overwrite what the owner already wrote. */
+export function mergeFields(fields: FieldDef[], existingText: string, seedText: string) {
+  const base = textToFields(fields, existingText);
+  const seed = textToFields(fields, seedText);
+  const out = { ...base };
+  for (const f of fields) if (!(out[f.key] ?? "").trim() && (seed[f.key] ?? "").trim()) out[f.key] = seed[f.key];
+  return out;
+}
+
+/** Existing rows first, then rows from the seed whose key (e.g. the product name) isn't there yet. */
+export function mergeBlocks(existingText: string, seedText: string, keyLabel: string) {
+  const rows = parseBlocks(existingText);
+  const seen = new Set(rows.map((r) => (r[keyLabel] ?? "").trim().toLowerCase()));
+  for (const r of parseBlocks(seedText)) {
+    const k = (r[keyLabel] ?? "").trim().toLowerCase();
+    if (k && !seen.has(k)) {
+      rows.push(r);
+      seen.add(k);
+    }
+  }
+  return rows;
+}
