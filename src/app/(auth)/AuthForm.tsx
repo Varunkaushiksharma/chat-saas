@@ -89,6 +89,12 @@ export function AuthForm({ mode, initialError = "" }: { mode: "login" | "signup"
         </Button>
       </form>
 
+      {isSignup && (
+        <p className="mt-4 rounded-xl bg-gray-50 px-3.5 py-2.5 text-xs text-muted">
+          This is a portfolio demo. Please use sample information, not real personal or business data. See our <Link href="/privacy" className="font-semibold text-ink underline-offset-2 hover:underline">Privacy</Link> and <Link href="/terms" className="font-semibold text-ink underline-offset-2 hover:underline">Terms</Link>.
+        </p>
+      )}
+
       <p className="mt-6 text-center text-sm text-muted">
         {isSignup ? "Already have an account? " : "New here? "}
         <Link href={isSignup ? "/login" : "/signup"} className="font-medium text-brand hover:underline">

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
+import { checkWidgetLimits } from "@/lib/abuse";
 import { runTurn } from "@/lib/engine/turn";
 import { rateLimit } from "@/lib/ratelimit";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -62,6 +63,10 @@ export async function POST(req: Request) {
       const bare = (h: string) => h.toLowerCase().replace(/^www\./, "");
       if (!bot.allowed_domains.some((d: string) => bare(d) === bare(host))) return fail("This website is not allowed", 403);
     }
+
+    // Limits kept in the database, so they hold across every serverless instance
+    const verdict = await checkWidgetLimits(db, bot, { ip, conversationId });
+    if (!verdict.ok) return fail(verdict.message, 429);
 
     const r = await runTurn(db, bot, { message, conversationId, channel: "web", customerRef: ip });
     return NextResponse.json({ reply: r.reply, conversationId: r.conversationId, handoff: r.handoff }, { headers });

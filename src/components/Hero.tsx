@@ -111,6 +111,11 @@ export function Hero() {
           <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 1.1, duration: 0.8 }} className="mt-6 text-sm font-semibold text-muted">
             Free to start. Set up in minutes, no code needed.
           </motion.p>
+          {process.env.NEXT_PUBLIC_DEMO_BOT_KEY && (
+            <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 1.3, duration: 0.8 }} className="mt-3 inline-flex items-center gap-2 rounded-full border-2 border-ink bg-white px-4 py-1.5 text-sm font-bold shadow-[3px_3px_0_#111]">
+              <span className="size-2 rounded-full bg-pop-green" /> Try it live: the chat bubble in the corner is a real bot.
+            </motion.p>
+          )}
         </motion.div>
 
         {/* ---------- the 3D scene ---------- */}

@@ -1,4 +1,5 @@
 import { Suspense } from "react";
+import { DemoWidget } from "@/components/DemoWidget";
 import { MotionProvider } from "@/components/motion";
 import { SiteFooter } from "@/components/SiteFooter";
 import { SiteHeader } from "@/components/SiteHeader";
@@ -14,6 +15,7 @@ export default function SiteLayout({ children }: { children: React.ReactNode }) 
         </Suspense>
         {children}
         <SiteFooter />
+        <DemoWidget />
       </div>
     </MotionProvider>
   );

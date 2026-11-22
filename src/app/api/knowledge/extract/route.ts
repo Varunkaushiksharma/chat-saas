@@ -12,7 +12,7 @@ export async function POST(req: Request) {
     if (!rateLimit(`extract:${user.id}`, 20, 60_000)) throw new HttpError("Slow down a little, then try again.", 429);
 
     const declared = Number(req.headers.get("content-length") ?? 0);
-    if (declared > MAX_FILE_BYTES + 1024 * 64) throw new HttpError("That file is too large. The limit is 8 MB.", 413);
+    if (declared > MAX_FILE_BYTES + 1024 * 64) throw new HttpError("That file is too large. The limit is 4 MB.", 413);
 
     const form = await req.formData().catch(() => null);
     const file = form?.get("file");

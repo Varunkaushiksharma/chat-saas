@@ -54,7 +54,13 @@ export function SiteFooter() {
         ))}
       </div>
       <div className="border-t-2 border-ink">
-        <p className="mx-auto max-w-6xl px-6 py-4 text-xs font-semibold text-muted">© {BRAND.name}. Made for small businesses.</p>
+        <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-x-6 gap-y-2 px-6 py-4 text-xs font-semibold text-muted">
+          <p>© {BRAND.name}. A portfolio demo project. Please use sample data only.</p>
+          <nav className="flex gap-5">
+            <Link href="/privacy" className="underline-offset-4 hover:text-ink hover:underline">Privacy</Link>
+            <Link href="/terms" className="underline-offset-4 hover:text-ink hover:underline">Terms</Link>
+          </nav>
+        </div>
       </div>
     </footer>
   );

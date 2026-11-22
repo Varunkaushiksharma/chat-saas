@@ -1,6 +1,6 @@
 import { HttpError } from "@/lib/api";
 
-export const MAX_FILE_BYTES = 8 * 1024 * 1024; // 8 MB
+export const MAX_FILE_BYTES = 4 * 1024 * 1024; // 4 MB: Vercel functions accept ~4.5 MB request bodies
 export const MAX_TEXT_CHARS = 60_000; // same limit as the knowledge entry itself
 
 export type Extracted = { text: string; pages?: number; truncated: boolean; format: string };
@@ -30,7 +30,7 @@ function stripHtml(html: string) {
 
 /** Reads the text out of an uploaded file. Supports PDF, Word (.docx), Markdown, text, CSV and HTML. */
 export async function extractFromFile(name: string, bytes: Uint8Array): Promise<Extracted> {
-  if (bytes.byteLength > MAX_FILE_BYTES) throw new HttpError("That file is too large. The limit is 8 MB.", 413);
+  if (bytes.byteLength > MAX_FILE_BYTES) throw new HttpError("That file is too large. The limit is 4 MB.", 413);
   const ext = (name.split(".").pop() ?? "").toLowerCase();
 
   let text = "";

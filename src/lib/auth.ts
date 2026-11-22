@@ -4,16 +4,20 @@ import { createClient } from "@/lib/supabase/server";
 
 type Claimed = { id: string; email?: string; user_metadata: Record<string, unknown> };
 
+type Membership = { tenant_id: string; tenants: { created_at: string } | { created_at: string }[] | null };
+
+// All of the user's workspaces, oldest first (ties broken by id), so every request agrees on the same one.
+async function myWorkspaces(supabase: Awaited<ReturnType<typeof createClient>>, userId: string) {
+  const { data } = await supabase.from("tenant_members").select("tenant_id,tenants(created_at)").eq("user_id", userId);
+  return ((data ?? []) as unknown as Membership[])
+    .map((m) => ({ id: m.tenant_id, at: String((Array.isArray(m.tenants) ? m.tenants[0] : m.tenants)?.created_at ?? "") }))
+    .sort((x, y) => x.at.localeCompare(y.at) || x.id.localeCompare(y.id));
+}
+
 // First visit after signup: find the user's business workspace, or create it.
 async function resolveTenant(supabase: Awaited<ReturnType<typeof createClient>>, user: Claimed) {
-  const { data: membership } = await supabase
-    .from("tenant_members")
-    .select("tenant_id")
-    .eq("user_id", user.id)
-    .order("tenant_id", { ascending: true }) // deterministic if an account ever has more than one
-    .limit(1)
-    .maybeSingle();
-  if (membership?.tenant_id) return membership.tenant_id as string;
+  const existing = await myWorkspaces(supabase, user.id);
+  if (existing.length) return existing[0].id;
 
   const admin = createAdminClient();
   const name =
@@ -22,7 +26,13 @@ async function resolveTenant(supabase: Awaited<ReturnType<typeof createClient>>,
   if (error) throw new Error(error.message);
   const { error: mErr } = await admin.from("tenant_members").insert({ tenant_id: tenant.id, user_id: user.id, role: "owner" });
   if (mErr) throw new Error(mErr.message);
-  return tenant.id as string;
+
+  // A dashboard fires several requests at once on the first visit, so each may have just created one.
+  // Everyone keeps the oldest and removes their own extra (deleting the workspace removes its membership too).
+  const after = await myWorkspaces(supabase, user.id);
+  const keeper = after[0]?.id ?? (tenant.id as string);
+  if (keeper !== tenant.id) await admin.from("tenants").delete().eq("id", tenant.id);
+  return keeper;
 }
 
 // Authenticates the request and returns a Supabase client that acts AS THE USER,

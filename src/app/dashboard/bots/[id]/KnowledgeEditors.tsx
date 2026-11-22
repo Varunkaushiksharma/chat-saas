@@ -366,7 +366,7 @@ export function DocEditor({ botId, onSaved, onClose }: Common) {
     setError("");
     setWarn("");
     setInfo("");
-    if (f.size > 8 * 1024 * 1024) return setError("That file is too large. The limit is 8 MB.");
+    if (f.size > 4 * 1024 * 1024) return setError("That file is too large. The limit is 4 MB.");
     setReading(true);
     try {
       const fd = new FormData();
@@ -422,7 +422,7 @@ export function DocEditor({ botId, onSaved, onClose }: Common) {
           <Ico d={dashIcons.doc} className="size-6" />
         </span>
         <span className="font-semibold">{reading ? "Reading your file…" : "Drop a file here, or click to browse"}</span>
-        <span className="text-xs text-muted">PDF, Word (.docx), Markdown, text, CSV or HTML · up to 8 MB</span>
+        <span className="text-xs text-muted">PDF, Word (.docx), Markdown, text, CSV or HTML · up to 4 MB</span>
         <input
           type="file"
           accept=".pdf,.docx,.md,.markdown,.txt,.csv,.tsv,.html,.htm,application/pdf"

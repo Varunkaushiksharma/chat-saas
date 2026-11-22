@@ -139,3 +139,8 @@ end $$;
 
 -- Note: the public widget endpoint and webhooks use the service-role key on the
 -- server only, and always derive tenant_id/bot_id from the bot's public_key.
+
+-- ---------- Optional performance indexes (safe to run more than once) ----------
+-- They keep the public-widget abuse limits fast when the tables grow.
+create index if not exists messages_tenant_time_idx on messages (tenant_id, created_at desc);
+create index if not exists conversations_ref_time_idx on conversations (customer_ref, created_at desc);
