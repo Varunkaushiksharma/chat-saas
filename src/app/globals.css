@@ -30,8 +30,8 @@
   --color-danger: #d93a1f;
   --color-danger-soft: #ffe6df;
 
-  --font-sans: var(--font-jakarta);
-  --font-display: var(--font-bricolage);
+  --font-sans: var(--font-dmsans);
+  --font-display: var(--font-space);
   --font-mono: var(--font-geist-mono);
 }
 

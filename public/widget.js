@@ -7,6 +7,9 @@
   if (!script) return;
   var key = script.getAttribute("data-bot");
   if (!key) return console.error("[chat-widget] missing data-bot attribute");
+  window.__chatWidgetLoaded = window.__chatWidgetLoaded || {};
+  if (window.__chatWidgetLoaded[key]) return; // already on this page: never show two bubbles
+  window.__chatWidgetLoaded[key] = true;
   var api = new URL(script.src).origin + "/api/widget/chat";
   var color = script.getAttribute("data-color") || "#2b50ff";
   var title = script.getAttribute("data-title") || "Chat with us";
