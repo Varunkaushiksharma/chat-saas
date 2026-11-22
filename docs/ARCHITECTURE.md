@@ -1,4 +1,4 @@
-# How it works (for interviews)
+# Architecture: how Replyly works
 
 ## 1. What we use, and why
 | Layer | Tech | Why |
@@ -46,14 +46,3 @@ The widget and the dashboard "Test chat" share one function (`runTurn`), so what
 
 ## 7. Abuse and cost protection
 Free Gemini has quotas, so public endpoints are limited: per IP, per conversation (40 messages), per workspace (300/hour, counted in the database so it works across serverless instances), plus an in-memory limiter as a first filter. `/api/ping` is a cheap keep-alive route; it never calls the AI.
-
-## 8. Likely interview questions
-- **Why RAG instead of fine-tuning?** Knowledge changes daily; RAG updates instantly, is cheap, and can cite what it used.
-- **How do you stop hallucinations?** Retrieval threshold, strict prompt, fallback plus human hand-off, forbidden-topic rules.
-- **How do tenants stay isolated?** RLS in Postgres, plus a user-scoped client; tested with two accounts.
-- **Biggest security risk?** The website importer (SSRF); handled with connect-time IP checks.
-- **What would you do next?** Email alerts on hand-off, WhatsApp/Instagram via Meta's API (needs business approval), analytics, Sentry, billing.
-- **What are the limits?** Free tiers: Gemini rate limits, Supabase pauses after inactivity, serverless timeouts (60 s on crawl).
-
-## 9. Be honest about AI assistance
-It is fine, and expected, to say you built this with an AI coding assistant. What matters is that you can explain every section above. Read this file, open the code for each step, and be ready to walk through one message end to end.
