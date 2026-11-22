@@ -1,26 +1,102 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
+/*
+ * Pop palette: flat, vivid colours, thick ink outlines, hard offset shadows. No gradients.
+ * Change a token here and the whole app follows.
+ */
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
+  --color-ink: #111111;
+  --color-bg: #f7f5ef;
+  --color-card: #ffffff;
+  --color-muted: #55534d;
+  --color-line: #e6e8ee;
+  --color-app: #f4f5f8;
+
+  --color-brand: #2b50ff;
+  --color-brand-dark: #1b38d9;
+  --color-brand-soft: #e4eaff;
+
+  --color-accent: #00c98d;
+  --color-accent-soft: #d3f8ea;
+
+  --color-pop-yellow: #ffd60a;
+  --color-pop-pink: #ff5ca8;
+  --color-pop-orange: #ff7a2f;
+  --color-pop-green: #2fe39a;
+  --color-pop-blue: #2b50ff;
+
+  --color-warn: #8a5a00;
+  --color-warn-soft: #fff1c9;
+  --color-danger: #d93a1f;
+  --color-danger-soft: #ffe6df;
+
+  --font-sans: var(--font-jakarta);
+  --font-display: var(--font-bricolage);
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+@theme {
+  --shadow-soft: 0 1px 2px rgba(16, 24, 40, 0.05), 0 6px 20px -8px rgba(16, 24, 40, 0.1);
+  --shadow-lift: 0 2px 4px rgba(16, 24, 40, 0.06), 0 18px 36px -14px rgba(16, 24, 40, 0.2);
+
+  --animate-float: float 6s ease-in-out infinite;
+  --animate-spin-slow: spin 14s linear infinite;
+  --animate-wiggle: wiggle 3.2s ease-in-out infinite;
+  --animate-ring: ring 2.2s ease-out infinite;
+
+  @keyframes float {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-12px); }
+  }
+  @keyframes wiggle {
+    0%, 100% { transform: rotate(-6deg); }
+    50% { transform: rotate(6deg); }
+  }
+  @keyframes ring {
+    0% { transform: scale(0.8); opacity: 0.6; }
+    100% { transform: scale(2.2); opacity: 0; }
   }
 }
 
+html {
+  color-scheme: light;
+  scroll-behavior: smooth;
+}
+
+/* Thin, flat scrollbars everywhere (page, chat panels, inbox) */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #111111 transparent;
+}
+::-webkit-scrollbar {
+  width: 7px;
+  height: 7px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #111111;
+  border-radius: 999px;
+}
+
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--color-card);
+  color: var(--color-ink);
+}
+
+::selection {
+  background: var(--color-pop-yellow);
+  color: var(--color-ink);
+}
+
+/* Respect users who ask for less motion */
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    transition-delay: 0ms !important;
+  }
 }
